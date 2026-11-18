@@ -60,7 +60,7 @@ $staging = Join-Path $workspace ('build\setup-' + [Guid]::NewGuid().ToString('N'
 & $NsisCompiler /INPUTCHARSET UTF8 "/DVERSION=$version" "/DWORKSPACE=$workspace" "/DARTIFACT=$staging" "/DTAURI_PLUGIN_DIR=$pluginDir" (Join-Path $workspace 'scripts\setup.nsi')
 if ($LASTEXITCODE) { throw "Création de l’installeur NSIS échouée" }
 if (Test-Path -LiteralPath $setup) {
-    [IO.File]::Replace($staging, $setup, $null)
+    [IO.File]::Replace($staging, $setup, [NullString]::Value)
 } else {
     [IO.File]::Move($staging, $setup)
 }
