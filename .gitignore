@@ -1,0 +1,12 @@
+/build/
+/dist/
+/.wix/
+/windows/bin/
+/windows/obj/
+*.p12
+*.pfx
+
+__pycache__/
+*.keystore
+*.jks
+Thumbs.db
