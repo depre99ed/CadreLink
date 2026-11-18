@@ -27,7 +27,10 @@ $nugetDirectory = $nugetDirectory.Substring($nugetDirectory.IndexOf(':') + 1).Tr
 $ortRoot = Join-Path $nugetDirectory 'microsoft.ml.onnxruntime\1.32.0'
 $ortNotice = Get-ChildItem -LiteralPath $ortRoot -File | Where-Object {$_.Name -match '^ThirdPartyNotices'} | Select-Object -First 1
 if (!$ortNotice) { throw 'Notices ONNX Runtime manquantes' }
-Copy-Item -LiteralPath $ortNotice.FullName -Destination 'build\ONNX-THIRD-PARTY-NOTICES.txt'
+$ortLicense = [IO.File]::ReadAllText((Join-Path $ortRoot 'LICENSE'))
+$ortNotices = [IO.File]::ReadAllText($ortNotice.FullName)
+[IO.File]::WriteAllText((Join-Path $workspace 'build\ONNX-THIRD-PARTY-NOTICES.txt'),
+    $ortLicense + [Environment]::NewLine + $ortNotices, [Text.UTF8Encoding]::new($false))
 
 if (!$NsisCompiler) { $NsisCompiler = (Get-Command makensis.exe -ErrorAction SilentlyContinue).Source }
 if (!$NsisCompiler) {
@@ -53,6 +56,12 @@ if ((Get-FileHash -LiteralPath $plugin -Algorithm SHA1).Hash -ne $pluginSha1) { 
 $project = [xml][IO.File]::ReadAllText((Join-Path $workspace 'windows\CadreLink.csproj'))
 $version = $project.Project.PropertyGroup.Version
 $setup = Join-Path $workspace 'dist\CadreLink-setup.exe'
-& $NsisCompiler /INPUTCHARSET UTF8 "/DVERSION=$version" "/DWORKSPACE=$workspace" "/DARTIFACT=$setup" "/DTAURI_PLUGIN_DIR=$pluginDir" (Join-Path $workspace 'scripts\setup.nsi')
+$staging = Join-Path $workspace ('build\setup-' + [Guid]::NewGuid().ToString('N') + '.exe')
+& $NsisCompiler /INPUTCHARSET UTF8 "/DVERSION=$version" "/DWORKSPACE=$workspace" "/DARTIFACT=$staging" "/DTAURI_PLUGIN_DIR=$pluginDir" (Join-Path $workspace 'scripts\setup.nsi')
 if ($LASTEXITCODE) { throw "Création de l’installeur NSIS échouée" }
+if (Test-Path -LiteralPath $setup) {
+    [IO.File]::Replace($staging, $setup, $null)
+} else {
+    [IO.File]::Move($staging, $setup)
+}
 Get-Item -LiteralPath $setup
